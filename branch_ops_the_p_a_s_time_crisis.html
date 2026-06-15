@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Branch Ops: The P-A-S Time Crisis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
+        .game-container { max-width: 600px; margin: 0 auto; background: white; min-height: 100vh; box-shadow: 0 0 20px rgba(0,0,0,0.1); position: relative; overflow-x: hidden;}
+        
+        /* Animations */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        .shake-animation { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; background-color: #fee2e2 !important; }
+        
+        @keyframes flashGreen {
+            0%, 100% { background-color: white; }
+            50% { background-color: #dcfce7; }
+        }
+        .flash-green { animation: flashGreen 0.6s ease-in-out; }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .pulse-critical { animation: pulse 1s infinite; color: #ef4444;}
+
+        .hidden-screen { display: none !important; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="text-gray-800">
+
+<div class="game-container flex flex-col h-screen" id="app-container">
+    
+    <!-- 1. LOGIN / GATEWAY SCREEN -->
+    <div id="screen-login" class="flex flex-col h-full justify-between p-6 overflow-y-auto">
+        <div>
+            <div class="text-center mt-8 mb-6">
+                <i class="fas fa-building-columns text-5xl text-blue-600 mb-4"></i>
+                <h1 class="text-3xl font-bold text-gray-900 leading-tight">Branch Ops:<br><span class="text-blue-600">The P-A-S Time Crisis</span></h1>
+            </div>
+            
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded mb-6 text-sm">
+                <h3 class="font-bold text-blue-800 mb-1"><i class="fas fa-lightbulb mr-2"></i>WHY ARE WE HERE?</h3>
+                <p class="text-blue-700">Setiap detik berharga saat operasional kacau. Reaksi impulsif menghancurkan mental tim. Pelajari cara merespons kesalahan dengan taktis untuk menjaga <span class="font-bold">Psychological Safety</span> dan memastikan operasional cabang tetap stabil di bawah tekanan.</p>
+            </div>
+
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Lengkap</label>
+                    <input type="text" id="input-name" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Masukkan nama Anda">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">NIK (10 Digit Angka)</label>
+                    <input type="text" id="input-nik" required pattern="\d{10}" maxlength="10" title="Harus 10 digit angka" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Contoh: 1234567890" oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg transform transition active:scale-95 mt-4">
+                    <i class="fas fa-sign-in-alt mr-2"></i> Masuk ke Simulasi
+                </button>
+            </form>
+        </div>
+        
+        <div class="text-center text-xs text-gray-500 py-4 mt-auto">
+            Education & Training Dept. &copy; 2026
+        </div>
+    </div>
+
+    <!-- 2. MISSION BRIEFING SCREEN -->
+    <div id="screen-briefing" class="hidden-screen flex flex-col h-full p-6 overflow-y-auto">
+        <div class="bg-gray-900 text-white p-6 rounded-xl shadow-xl mt-4 border-2 border-yellow-500 relative">
+            <div class="absolute -top-3 right-4 bg-yellow-500 text-xs text-black font-bold px-2 py-1 rounded">CLASSIFIED</div>
+            <h2 class="text-2xl font-bold text-yellow-400 mb-4 border-b border-gray-700 pb-2"><i class="fas fa-clipboard-list mr-2"></i>MISSION BRIEFING</h2>
+            
+            <p class="mb-4">Selamat datang, <span id="display-name-briefing" class="font-bold text-blue-300"></span>. Cabang sedang mengalami <i>Rush Hour</i>. Staf akan panik melaporkan kesalahan operasional.</p>
+            
+            <ul class="space-y-3 mb-6 text-sm">
+                <li class="flex items-start"><i class="fas fa-clock text-red-400 mt-1 mr-3"></i> <span>Anda punya <b>60 Detik</b> untuk memulai. Waktu akan terus berjalan.</span></li>
+                <li class="flex items-start"><i class="fas fa-shield-heart text-green-400 mt-1 mr-3"></i> <span>Jaga <b>Psychological Safety</b> di atas 0%. Jika staf mogok mental, Anda gagal.</span></li>
+                <li class="flex items-start"><i class="fas fa-list-ol text-blue-400 mt-1 mr-3"></i> <span>Gunakan urutan <b>P-A-S</b> (Pause, Assess, Solve) untuk setiap kasus.</span></li>
+                <li class="flex items-start"><i class="fas fa-bolt text-yellow-400 mt-1 mr-3"></i> <span>Jawaban benar: +15 detik. Jawaban salah (Blaming): -10 detik & mental drop!</span></li>
+            </ul>
+
+            <button id="btn-start-game" class="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-extrabold py-3 px-4 rounded shadow-[0_4px_0_#b45309] active:shadow-[0_0px_0_#b45309] active:translate-y-1 transition text-lg">
+                <i class="fas fa-play mr-2"></i> MULAI PERMAINAN
+            </button>
+        </div>
+    </div>
+
+    <!-- 3. MAIN GAME SCREEN -->
+    <div id="screen-game" class="hidden-screen flex flex-col h-full bg-gray-100">
+        <!-- Top Bar -->
+        <div class="bg-blue-800 text-white p-3 shadow-md z-10 sticky top-0">
+            <div class="flex justify-between items-center mb-2">
+                <div class="font-bold text-xl flex items-center" id="timer-display">
+                    <i class="fas fa-stopwatch mr-2"></i> <span id="time-val">60</span>s
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm font-semibold">Skor: <span id="score-val" class="text-yellow-300">0</span></div>
+                    <button id="btn-mute" class="text-gray-300 hover:text-white"><i class="fas fa-volume-up"></i></button>
+                </div>
+            </div>
+            
+            <!-- Gamification Progress & Health -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between text-xs font-semibold">
+                    <span><i class="fas fa-shield-heart text-pink-400 mr-1"></i> Psych Safety</span>
+                    <span id="health-text">100%</span>
+                </div>
+                <div class="w-full bg-gray-700 rounded-full h-2.5">
+                    <div id="health-bar" class="bg-gradient-to-r from-red-500 to-green-500 h-2.5 rounded-full transition-all duration-300" style="width: 100%"></div>
+                </div>
+                
+                <div class="flex items-center justify-between text-xs mt-1">
+                    <span class="text-gray-300">Progress Kasus</span>
+                    <span id="progress-text" class="text-gray-300">0/10</span>
+                </div>
+                <div class="w-full bg-blue-900 rounded-full h-1.5">
+                    <div id="progress-bar" class="bg-blue-400 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gameplay Area -->
+        <div class="flex-1 overflow-y-auto p-4 flex flex-col" id="game-content-area">
+            
+            <!-- Badges Display Area -->
+            <div id="badge-area" class="flex justify-center space-x-2 mb-4 hidden">
+                <div id="badge-half" class="opacity-30 grayscale transition duration-500 text-center"><i class="fas fa-medal text-3xl text-gray-400"></i><p class="text-[10px] font-bold mt-1 text-gray-500">Rookie</p></div>
+                <div id="badge-full" class="opacity-30 grayscale transition duration-500 text-center"><i class="fas fa-trophy text-3xl text-yellow-500"></i><p class="text-[10px] font-bold mt-1 text-yellow-600">Fearless</p></div>
+            </div>
+
+            <!-- Dialogue Box -->
+            <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200 mb-4 relative" id="dialogue-box">
+                <div class="flex items-start">
+                    <div class="bg-gray-200 rounded-full p-3 mr-3 border-2 border-blue-200">
+                        <i class="fas fa-user-tie text-2xl text-gray-600"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-blue-800 text-sm mb-1" id="staff-name">Staf</h4>
+                        <p class="text-gray-700 italic" id="problem-text">"Pak/Bu! Gawat, saya salah input data!"</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Stage Indicator -->
+            <div class="flex justify-center mb-4 space-x-2" id="pas-indicator">
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300" id="ind-P">P - Pause</span>
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-400" id="ind-A">A - Assess</span>
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-400" id="ind-S">S - Solve</span>
+            </div>
+
+            <!-- Options Area -->
+            <div class="space-y-3 mt-auto pb-4" id="options-area">
+                <!-- Buttons injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. RESULT DEBRIEF SCREEN -->
+    <div id="screen-result" class="hidden-screen flex flex-col h-full bg-white p-6 overflow-y-auto">
+        <div class="text-center mt-6 mb-6">
+            <h2 class="text-3xl font-extrabold mb-2" id="result-title">MISSION COMPLETE</h2>
+            <div class="text-6xl mb-4" id="result-icon">🏆</div>
+            <p class="text-lg text-gray-600 mb-1" id="result-message">Kerja bagus, Leader!</p>
+            <div class="bg-blue-50 py-3 px-6 rounded-lg inline-block font-bold text-blue-800 text-xl">
+                Skor Akhir: <span id="final-score">0</span>
+            </div>
+        </div>
+
+        <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <h3 class="font-bold text-gray-800 border-b pb-2 mb-3"><i class="fas fa-chart-pie mr-2"></i>Status Performa</h3>
+            <div class="flex justify-between mb-2 text-sm">
+                <span>Psychological Safety:</span>
+                <span class="font-bold" id="final-health">100%</span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span>Waktu Tersisa:</span>
+                <span class="font-bold" id="final-time">0s</span>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto mb-4 border rounded p-3 text-sm bg-white" id="feedback-area">
+            <h3 class="font-bold text-gray-800 mb-2 sticky top-0 bg-white pb-1"><i class="fas fa-comments mr-2"></i>Post-Action Debrief</h3>
+            <div id="feedback-list" class="space-y-3">
+                <!-- Feedbacks injected by JS -->
+            </div>
+        </div>
+
+        <button onclick="location.reload()" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-4 px-4 rounded-lg shadow mt-auto">
+            <i class="fas fa-redo mr-2"></i> Mainkan Ulang Simulasi
+        </button>
+        <div class="text-center text-xs text-gray-500 py-3 mt-2">
+            Education & Training Dept. &copy; 2026
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- AUDIO SYSTEM (Web Audio API) ---
+    const AudioSys = {
+        ctx: null,
+        bgmOsc: null,
+        bgmGain: null,
+        isMuted: false,
+        volume: 0.15, // Capped internally to prevent ear damage (equivalent to sensible listening level)
+
+        init: function() {
+            if (!this.ctx) {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        },
+
+        playBGM: function() {
+            if(this.isMuted) return;
+            this.init();
+            if (this.bgmOsc) this.stopBGM();
+
+            this.bgmOsc = this.ctx.createOscillator();
+            this.bgmGain = this.ctx.createGain();
+            
+            this.bgmOsc.type = 'triangle';
+            this.bgmGain.gain.value = this.volume;
+
+            this.bgmOsc.connect(this.bgmGain);
+            this.bgmGain.connect(this.ctx.destination);
+
+            // Simple generative retro bassline
+            const notes = [220, 220, 261.63, 293.66]; // A3, A3, C4, D4
+            let step = 0;
+            
+            this.bgmInterval = setInterval(() => {
+                if(this.bgmOsc && !this.isMuted) {
+                    this.bgmOsc.frequency.setValueAtTime(notes[step % notes.length], this.ctx.currentTime);
+                    step++;
+                }
+            }, 500);
+
+            this.bgmOsc.start();
+        },
+
+        stopBGM: function() {
+            if (this.bgmOsc) {
+                this.bgmOsc.stop();
+                this.bgmOsc.disconnect();
+                clearInterval(this.bgmInterval);
+                this.bgmOsc = null;
+            }
+        },
+
+        toggleMute: function(btnElement) {
+            this.isMuted = !this.isMuted;
+            if (this.isMuted) {
+                this.stopBGM();
+                btnElement.innerHTML = '<i class="fas fa-volume-mute text-red-400"></i>';
+            } else {
+                this.playBGM();
+                btnElement.innerHTML = '<i class="fas fa-volume-up"></i>';
+            }
+        },
+
+        playSFX: function(type) {
+            if (this.isMuted || !this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            const now = this.ctx.currentTime;
+            
+            if (type === 'correct') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+                gain.gain.setValueAtTime(this.volume, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+                gain.gain.setValueAtTime(this.volume, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'tick') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(800, now);
+                gain.gain.setValueAtTime(this.volume * 0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            }
+        }
+    };
+
+    // --- GAME DATA ---
+    const scenarios = [
+        {
+            staff: "Budi (Teller)",
+            problem: "Pak/Bu! Gawat, saya salah mentransfer kliring nasabah VIP ke rekening yang salah!",
+            stages: [
+                {
+                    type: "Pause",
+                    options: [
+                        { text: "Tarik napas dulu Budi. Tenang, mari kita urus ini sama-sama.", isCorrect: true, feedback: "Jeda menenangkan amigdala (Relationship Mgmt) & mencegah panik." },
+                        { text: "Apa?! Bagaimana kamu bisa seceroboh itu?!", isCorrect: false, feedback: "Menyalahkan memicu 'fight or flight', staf akan menyembunyikan detail." }
+                    ]
+                },
+                {
+                    type: "Assess",
+                    options: [
+                        { text: "Coba ceritakan kronologisnya, di langkah mana salah kliknya?", isCorrect: true, feedback: "Investigasi objektif membangun rasa aman (Psychological Safety) untuk jujur." },
+                        { text: "Siapa yang ngajarin kamu cara transfer seperti itu?", isCorrect: false, feedback: "Mencari kambing hitam bukan mencari akar masalah operasional." }
+                    ]
+                },
+                {
+                    type: "Solve",
+                    options: [
+                        { text: "Hubungi IT untuk freeze dana, lalu kita buat laporan koreksi bersama.", isCorrect: true, feedback: "Solusi kolaboratif memulihkan operasional & menjaga optimisme." },
+                        { text: "Selesaikan sendiri! Uang itu harus kembali hari ini juga!", isCorrect: false, feedback: "Lepas tangan membuat staf stres dan berpotensi melakukan fraud untuk menutupi." }
+                    ]
+                }
+            ]
+        },
+        {
+            staff: "Siti (CS)",
+            problem: "Maaf Pak/Bu, dokumen jaminan asli nasabah atas nama PT Makmur terselip, saya tidak menemukannya dari tadi.",
+            stages: [
+                {
+                    type: "Pause",
+                    options: [
+                        { text: "Kamu sudah cari di mana saja Siti? Coba diingat pelan-pelan.", isCorrect: true, feedback: "Menahan emosi membantu staf berpikir lebih jernih mengingat jejak dokumen." },
+                        { text: "Dokumen sepenting itu bisa hilang?! Kamu kerja pakai mata tidak?!", isCorrect: false, feedback: "Intimidasi membuat staf makin gugup dan lupa." }
+                    ]
+                },
+                {
+                    type: "Assess",
+                    options: [
+                        { text: "Kapan terakhir kali kamu pegang dokumennya? Ada yang pinjam?", isCorrect: true, feedback: "Fokus pada proses pelacakan dokumen secara terstruktur." },
+                        { text: "Kamu pasti ninggalin sembarangan di meja kan?", isCorrect: false, feedback: "Asumsi negatif menutup komunikasi terbuka." }
+                    ]
+                },
+                {
+                    type: "Solve",
+                    options: [
+                        { text: "Mari kita susuri dari ruang arsip, cek CCTV jika perlu. Saya bantu.", isCorrect: true, feedback: "Dukungan atasan menunjukkan 'kita dalam tim yang sama'." },
+                        { text: "Pokoknya kalau sampai jam 3 tidak ketemu, kamu saya SP!", isCorrect: false, feedback: "Ancaman SP saat masalah sedang terjadi tidak menyelesaikan masalah." }
+                    ]
+                }
+            ]
+        },
+        {
+            staff: "Agus (Admin)",
+            problem: "Pak, sistem core banking tiba-tiba freeze setelah saya jalankan batch report siang ini.",
+            stages: [
+                {
+                    type: "Pause",
+                    options: [
+                        { text: "Oke Agus, jangan klik apa-apa dulu. Biarkan saja layarnya.", isCorrect: true, feedback: "Mencegah kerusakan lebih lanjut akibat kepanikan staf." },
+                        { text: "Waduh, kamu klik apa lagi nih sampai error begini?!", isCorrect: false, feedback: "Menuduh staf langsung tanpa bukti merusak trust." }
+                    ]
+                },
+                {
+                    type: "Assess",
+                    options: [
+                        { text: "Menu apa yang spesifik kamu buka sebelum sistemnya freeze?", isCorrect: true, feedback: "Menggali data teknis penting untuk tim IT." },
+                        { text: "Kamu pasti bypass SOP laporan ya makanya error?", isCorrect: false, feedback: "Pertanyaan menjebak membuat staf berbohong menyelamatkan diri." }
+                    ]
+                },
+                {
+                    type: "Solve",
+                    options: [
+                        { text: "Foto layarnya, kirim tiket ke Helpdesk IT, kita tunggu instruksi mereka.", isCorrect: true, feedback: "Mengikuti eskalasi masalah yang benar tanpa menyalahkan." },
+                        { text: "Restart saja PC-nya paksa! Cepat, nasabah nunggu!", isCorrect: false, feedback: "Instruksi gegabah bisa merusak database cabang." }
+                    ]
+                }
+            ]
+        },
+        {
+            staff: "Dina (Teller)",
+            problem: "Uang kas fisik saya selisih kurang 2 juta saat rekonsiliasi siang ini, Pak...",
+            stages: [
+                {
+                    type: "Pause",
+                    options: [
+                        { text: "Mari kita cek ke ruang belakang, Dina. Bawa jurnalmu.", isCorrect: true, feedback: "Memindahkan percakapan ke area privat menjaga privasi staf." },
+                        { text: "Hah? 2 Juta?! Kamu mau nombokin pakai gaji kamu?!", isCorrect: false, feedback: "Reaksi meledak-ledak di depan umum mempermalukan staf." }
+                    ]
+                },
+                {
+                    type: "Assess",
+                    options: [
+                        { text: "Coba kita urutkan transaksi pecahan besar sejam terakhir.", isCorrect: true, feedback: "Menganalisa data adalah cara terbaik menangani selisih." },
+                        { text: "Kamu pasti kasih kembalian lebih ke nasabah temanmu kan?", isCorrect: false, feedback: "Tuduhan personal menghancurkan Psychological Safety." }
+                    ]
+                },
+                {
+                    type: "Solve",
+                    options: [
+                        { text: "Kita putar ulang rekaman CCTV di kontermu untuk validasi.", isCorrect: true, feedback: "Menggunakan alat bantu pengawasan secara objektif." },
+                        { text: "Saya potong gajimu bulan ini titik! Tidak ada alasan.", isCorrect: false, feedback: "Hukuman tanpa investigasi melanggar etika kepemimpinan." }
+                    ]
+                }
+            ]
+        },
+        {
+            staff: "Rian (Kredit)",
+            problem: "Pak, berkas persetujuan kredit Pak Anton belum saya serahkan ke komite, padahal janjinya cair hari ini.",
+            stages: [
+                {
+                    type: "Pause",
+                    options: [
+                        { text: "Baik Rian, status nasabahnya sekarang di mana?", isCorrect: true, feedback: "Fokus pada mitigasi risiko ke nasabah terlebih dahulu." },
+                        { text: "Kamu ini bikin malu cabang saja! Kinerja lambat!", isCorrect: false, feedback: "Mencela karakter staf tidak memproses berkas jadi lebih cepat." }
+                    ]
+                },
+                {
+                    type: "Assess",
+                    options: [
+                        { text: "Apa kendalanya sampai berkas ini tertahan di mejamu?", isCorrect: true, feedback: "Mencari tahu penyebab bottleneck (mungkin beban kerja berlebih)." },
+                        { text: "Kenapa kamu malas sekali mengurus nasabah prioritas?!", isCorrect: false, feedback: "Pelabelan 'malas' menutup peluang perbaikan sistem kerja." }
+                    ]
+                },
+                {
+                    type: "Solve",
+                    options: [
+                        { text: "Telepon nasabah, sampaikan maaf ada delay internal. Segera proses sekarang.", isCorrect: true, feedback: "Mengajarkan tanggung jawab dan komunikasi profesional ke nasabah." },
+                        { text: "Kamu yang hadapi nasabahnya ngamuk! Saya gak mau ikut campur.", isCorrect: false, feedback: "Menghindari tanggung jawab manajerial menurunkan respek tim." }
+                    ]
+                }
+            ]
+        },
+        // Reusing patterns for remaining 5 to meet the 10 requirement efficiently for the demo
+        { staff: "Maya (CS)", problem: "Saya salah memberikan informasi suku bunga deposito ke nasabah baru.", stages: [
+            { type: "Pause", options: [{ text: "Tenang, apakah nasabahnya masih di lobi?", isCorrect: true, feedback: "Menilai urgensi situasi dengan kepala dingin." }, { text: "Kamu ini baca memo internal tidak sih?!", isCorrect: false, feedback: "Emosional merusak fokus." }] },
+            { type: "Assess", options: [{ text: "Informasi apa persisnya yang kamu sampaikan tadi?", isCorrect: true, feedback: "Validasi masalah secara akurat." }, { text: "Kenapa kamu selalu ceroboh soal angka?", isCorrect: false, feedback: "Generalisasi keburukan staf." }] },
+            { type: "Solve", options: [{ text: "Mari kita datangi nasabahnya bersama untuk meralat dengan sopan.", isCorrect: true, feedback: "Dukungan langsung meredam komplain." }, { text: "Urus sendiri, jangan bawa-bawa nama saya!", isCorrect: false, feedback: "Sikap defensif atasan." }] }
+        ]},
+        { staff: "Toni (Security)", problem: "Pak, pintu ruang brankas macet tidak bisa dibuka padahal vendor mau isi kas.", stages: [
+            { type: "Pause", options: [{ text: "Pastikan area steril, Toni. Jangan dipaksa.", isCorrect: true, feedback: "Mengutamakan keamanan fisik." }, { text: "Gimana sih kamu jaga pintu aja gak becus!", isCorrect: false, feedback: "Menyalahkan satpam untuk isu mekanis." }] },
+            { type: "Assess", options: [{ text: "Apakah ada indikator error di panel kuncinya?", isCorrect: true, feedback: "Observasi detail teknis." }, { text: "Kamu pasti yang rusak kuncinya kan?!", isCorrect: false, feedback: "Tuduhan tidak berdasar." }] },
+            { type: "Solve", options: [{ text: "Hubungi vendor brankas segera untuk emergency override.", isCorrect: true, feedback: "Eksekusi SOP darurat." }, { text: "Coba congkel aja pakai linggis biar cepat!", isCorrect: false, feedback: "Solusi ngawur dan berbahaya." }] }
+        ]},
+        { staff: "Lina (Admin)", problem: "Laporan transaksi harian BI belum saya submit, sudah lewat jam 4 sore Pak.", stages: [
+            { type: "Pause", options: [{ text: "Oke, mari kita ke meja kerjamu sekarang.", isCorrect: true, feedback: "Tindakan cepat tanpa drama." }, { text: "Kita bisa kena denda BI gara-gara kamu!!", isCorrect: false, feedback: "Menyebar kepanikan." }] },
+            { type: "Assess", options: [{ text: "Data mana yang belum selesai direkap?", isCorrect: true, feedback: "Mengidentifikasi persentase pekerjaan." }, { text: "Kerja seharian ngapain aja sih kamu?!", isCorrect: false, feedback: "Menjatuhkan motivasi." }] },
+            { type: "Solve", options: [{ text: "Saya bantu rekap bagian kredit, kamu fokus bagian dana.", isCorrect: true, feedback: "Kerja sama mengatasi krisis waktu." }, { text: "Lembur sampai pagi kalau perlu! Saya pulang duluan.", isCorrect: false, feedback: "Kepemimpinan yang buruk." }] }
+        ]},
+        { staff: "Budi (Teller)", problem: "Pak, mesin ATM depan error dan menelan kartu nasabah VIP.", stages: [
+            { type: "Pause", options: [{ text: "Arahkan nasabah masuk ke ruangan saya dulu.", isCorrect: true, feedback: "Handling komplain dengan memisahkan nasabah dari antrean." }, { text: "Duh, masalah apa lagi ini?! Bikin pusing!", isCorrect: false, feedback: "Menunjukkan ketidaksiapan mental." }] },
+            { type: "Assess", options: [{ text: "Apa status di layar ATM sekarang?", isCorrect: true, feedback: "Mengumpulkan data awal." }, { text: "Kenapa kamu gak cek mesinnya dari pagi?!", isCorrect: false, feedback: "Mencari kesalahan masa lalu." }] },
+            { type: "Solve", options: [{ text: "Beri penjelasan dan buatkan kartu pengganti instan (SLA cepat).", isCorrect: true, feedback: "Solusi berorientasi layanan prima." }, { text: "Suruh nasabahnya telepon call center saja.", isCorrect: false, feedback: "Melempar tanggung jawab cabang." }] }
+        ]},
+        { staff: "Siti (CS)", problem: "Pak, saya barusan sempat berdebat keras dengan nasabah karena formnya salah.", stages: [
+            { type: "Pause", options: [{ text: "Kamu istirahat 5 menit di pantry, minum air dulu.", isCorrect: true, feedback: "Memberi jeda emosional bagi staf yang terpancing." }, { text: "Kamu ini bikin malu! Pelayanan macam apa itu?!", isCorrect: false, feedback: "Memperburuk kondisi emosional staf." }] },
+            { type: "Assess", options: [{ text: "Ceritakan dari awal, apa yang membuat nasabah marah?", isCorrect: true, feedback: "Mendengarkan dua sisi cerita secara objektif." }, { text: "Pasti kamu yang mulai nada tinggi kan?!", isCorrect: false, feedback: "Asumsi menyudutkan." }] },
+            { type: "Solve", options: [{ text: "Nanti saya yang akan temui nasabahnya, kamu siapkan form barunya.", isCorrect: true, feedback: "Atasan pasang badan untuk staf." }, { text: "Minta maaf sana sambil berlutut kalau perlu!", isCorrect: false, feedback: "Menghancurkan harga diri staf." }] }
+        ]}
+    ];
+
+    // --- GAME STATE ---
+    let state = {
+        name: '', nik: '',
+        currentScenarioIdx: 0,
+        currentStageIdx: 0, // 0:P, 1:A, 2:S
+        time: 60,
+        score: 0,
+        health: 100,
+        timerInt: null,
+        feedbackLog: [] // Store {scenario, isCorrect, detail}
+    };
+
+    // --- DOM ELEMENTS ---
+    const els = {
+        login: document.getElementById('screen-login'),
+        briefing: document.getElementById('screen-briefing'),
+        game: document.getElementById('screen-game'),
+        result: document.getElementById('screen-result'),
+        loginForm: document.getElementById('login-form'),
+        btnStart: document.getElementById('btn-start-game'),
+        btnMute: document.getElementById('btn-mute'),
+        timeVal: document.getElementById('time-val'),
+        scoreVal: document.getElementById('score-val'),
+        healthBar: document.getElementById('health-bar'),
+        healthText: document.getElementById('health-text'),
+        progressBar: document.getElementById('progress-bar'),
+        progressText: document.getElementById('progress-text'),
+        staffName: document.getElementById('staff-name'),
+        problemText: document.getElementById('problem-text'),
+        optionsArea: document.getElementById('options-area'),
+        indP: document.getElementById('ind-P'),
+        indA: document.getElementById('ind-A'),
+        indS: document.getElementById('ind-S'),
+        gameContainer: document.getElementById('app-container'),
+        badgeArea: document.getElementById('badge-area'),
+        badgeHalf: document.getElementById('badge-half'),
+        badgeFull: document.getElementById('badge-full')
+    };
+
+    // --- LOGIC FUNCTIONS ---
+    
+    function switchScreen(screenId) {
+        els.login.classList.add('hidden-screen');
+        els.briefing.classList.add('hidden-screen');
+        els.game.classList.add('hidden-screen');
+        els.result.classList.add('hidden-screen');
+        document.getElementById(screenId).classList.remove('hidden-screen');
+    }
+
+    els.loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        state.name = document.getElementById('input-name').value;
+        state.nik = document.getElementById('input-nik').value;
+        document.getElementById('display-name-briefing').innerText = state.name;
+        AudioSys.init(); // Init audio on first user interaction
+        switchScreen('screen-briefing');
+    });
+
+    els.btnStart.addEventListener('click', () => {
+        AudioSys.playBGM();
+        switchScreen('screen-game');
+        els.badgeArea.classList.remove('hidden');
+        startGame();
+    });
+
+    els.btnMute.addEventListener('click', function() {
+        AudioSys.toggleMute(this);
+    });
+
+    function startGame() {
+        state.currentScenarioIdx = 0;
+        state.currentStageIdx = 0;
+        state.time = 60;
+        state.score = 0;
+        state.health = 100;
+        state.feedbackLog = [];
+        updateUI();
+        loadScenario();
+        
+        state.timerInt = setInterval(() => {
+            state.time--;
+            updateUI();
+            if(state.time <= 10) document.getElementById('timer-display').classList.add('pulse-critical');
+            else document.getElementById('timer-display').classList.remove('pulse-critical');
+
+            if(state.time > 0 && state.time % 2 === 0) AudioSys.playSFX('tick'); // subtle tick
+
+            if (state.time <= 0) endGame('time');
+        }, 1000);
+    }
+
+    function updateUI() {
+        els.timeVal.innerText = state.time;
+        els.scoreVal.innerText = state.score;
+        els.healthBar.style.width = `${Math.max(0, state.health)}%`;
+        els.healthText.innerText = `${Math.max(0, state.health)}%`;
+        
+        // Health bar color transition based on value
+        if(state.health > 70) els.healthBar.className = "bg-gradient-to-r from-green-400 to-green-600 h-2.5 rounded-full transition-all duration-300";
+        else if(state.health > 30) els.healthBar.className = "bg-gradient-to-r from-yellow-400 to-yellow-600 h-2.5 rounded-full transition-all duration-300";
+        else els.healthBar.className = "bg-gradient-to-r from-red-500 to-red-600 h-2.5 rounded-full transition-all duration-300 pulse-critical";
+
+        const progressPercent = (state.currentScenarioIdx / scenarios.length) * 100;
+        els.progressBar.style.width = `${progressPercent}%`;
+        els.progressText.innerText = `${state.currentScenarioIdx}/${scenarios.length}`;
+
+        // Badges
+        if (state.currentScenarioIdx >= 5) els.badgeHalf.classList.remove('opacity-30', 'grayscale');
+        if (state.currentScenarioIdx >= 10) els.badgeFull.classList.remove('opacity-30', 'grayscale');
+    }
+
+    function loadScenario() {
+        if (state.currentScenarioIdx >= scenarios.length) {
+            endGame('win');
+            return;
+        }
+
+        const sc = scenarios[state.currentScenarioIdx];
+        const stage = sc.stages[state.currentStageIdx];
+
+        if (state.currentStageIdx === 0) {
+            els.staffName.innerText = sc.staff;
+            els.problemText.innerText = `"${sc.problem}"`;
+            els.problemText.classList.add('shake-animation');
+            setTimeout(() => els.problemText.classList.remove('shake-animation'), 500);
+        }
+
+        // Update indicators
+        els.indP.className = `px-3 py-1 rounded-full text-xs font-bold ${state.currentStageIdx === 0 ? 'bg-blue-100 text-blue-800 border border-blue-300' : (state.currentStageIdx > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400')}`;
+        els.indA.className = `px-3 py-1 rounded-full text-xs font-bold ${state.currentStageIdx === 1 ? 'bg-blue-100 text-blue-800 border border-blue-300' : (state.currentStageIdx > 1 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400')}`;
+        els.indS.className = `px-3 py-1 rounded-full text-xs font-bold ${state.currentStageIdx === 2 ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'bg-gray-100 text-gray-400'}`;
+
+        els.optionsArea.innerHTML = '';
+        
+        // Shuffle options to prevent pattern memorization
+        const shuffledOptions = [...stage.options].sort(() => Math.random() - 0.5);
+
+        shuffledOptions.forEach((opt) => {
+            const btn = document.createElement('button');
+            btn.className = "w-full text-left p-3 rounded border border-gray-300 bg-white hover:bg-blue-50 hover:border-blue-300 transition text-sm shadow-sm active:scale-95";
+            btn.innerText = opt.text;
+            btn.onclick = () => handleOptionClick(opt, stage.type);
+            els.optionsArea.appendChild(btn);
+        });
+    }
+
+    function handleOptionClick(option, stageType) {
+        if (option.isCorrect) {
+            AudioSys.playSFX('correct');
+            state.score += 100;
+            state.time += 15; // Bonus time
+            state.health = Math.min(100, state.health + 5);
+            els.gameContainer.classList.add('flash-green');
+            setTimeout(() => els.gameContainer.classList.remove('flash-green'), 600);
+        } else {
+            AudioSys.playSFX('wrong');
+            state.score -= 50;
+            state.time -= 10; // Penalty time
+            state.health -= 20; // Big health drop for blaming
+            els.gameContainer.classList.add('shake-animation');
+            setTimeout(() => els.gameContainer.classList.remove('shake-animation'), 500);
+        }
+
+        // Log for debrief
+        state.feedbackLog.push({
+            scenarioNum: state.currentScenarioIdx + 1,
+            stage: stageType,
+            isCorrect: option.isCorrect,
+            feedback: option.feedback
+        });
+
+        updateUI();
+
+        if (state.health <= 0) {
+            endGame('health');
+            return;
+        }
+
+        state.currentStageIdx++;
+        if (state.currentStageIdx > 2) {
+            // Move to next scenario
+            state.currentStageIdx = 0;
+            state.currentScenarioIdx++;
+        }
+        
+        if (state.time > 0 && state.health > 0) {
+            loadScenario();
+        }
+    }
+
+    function endGame(reason) {
+        clearInterval(state.timerInt);
+        document.getElementById('timer-display').classList.remove('pulse-critical');
+        AudioSys.stopBGM();
+        
+        switchScreen('screen-result');
+
+        const titleEl = document.getElementById('result-title');
+        const iconEl = document.getElementById('result-icon');
+        const msgEl = document.getElementById('result-message');
+
+        if (reason === 'win') {
+            titleEl.innerText = "MISSION COMPLETE!";
+            titleEl.className = "text-3xl font-extrabold mb-2 text-green-600";
+            iconEl.innerText = "🌟";
+            msgEl.innerText = `Luar biasa ${state.name}! Anda adalah "The Fearless Leader".`;
+            AudioSys.playSFX('correct'); // Win sound
+        } else if (reason === 'time') {
+            titleEl.innerText = "TIME OUT!";
+            titleEl.className = "text-3xl font-extrabold mb-2 text-red-600";
+            iconEl.innerText = "⏰";
+            msgEl.innerText = `Waktu habis, operasional cabang lumpuh. Tingkatkan kecepatan respon Anda.`;
+            AudioSys.playSFX('wrong'); // Lose sound
+        } else if (reason === 'health') {
+            titleEl.innerText = "TEAM MORALE CRASH!";
+            titleEl.className = "text-3xl font-extrabold mb-2 text-red-600";
+            iconEl.innerText = "💔";
+            msgEl.innerText = `Psychological Safety hancur. Staf terlalu takut untuk bekerja dengan Anda.`;
+            AudioSys.playSFX('wrong');
+        }
+
+        document.getElementById('final-score').innerText = state.score;
+        document.getElementById('final-health').innerText = `${Math.max(0, state.health)}%`;
+        document.getElementById('final-time').innerText = `${Math.max(0, state.time)}s`;
+
+        // Generate Feedback List
+        const feedList = document.getElementById('feedback-list');
+        feedList.innerHTML = '';
+        
+        if(state.feedbackLog.length === 0) {
+             feedList.innerHTML = '<p class="text-gray-500 italic">Belum ada data tindakan.</p>';
+        } else {
+            // Group by scenario for cleaner debrief (just showing the last few or highlights)
+            // Showing all can be long, let's show the last 5 decisions
+            const recentLogs = state.feedbackLog.slice(-10).reverse(); // Last 10 actions
+            
+            recentLogs.forEach(log => {
+                const item = document.createElement('div');
+                item.className = `p-3 rounded border-l-4 ${log.isCorrect ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500'}`;
+                item.innerHTML = `
+                    <div class="flex items-center mb-1">
+                        ${log.isCorrect ? '<i class="fas fa-check-circle text-green-600 mr-2"></i>' : '<i class="fas fa-times-circle text-red-600 mr-2"></i>'}
+                        <span class="font-bold text-xs text-gray-700">Kasus ${log.scenarioNum} - Tahap ${log.stage}</span>
+                    </div>
+                    <p class="text-xs text-gray-800">${log.feedback}</p>
+                `;
+                feedList.appendChild(item);
+            });
+            
+            const note = document.createElement('p');
+            note.className = "text-center text-xs text-gray-400 mt-2 italic";
+            note.innerText = "Menampilkan 10 keputusan terakhir.";
+            feedList.appendChild(note);
+        }
+    }
+</script>
+</body>
+</html>
